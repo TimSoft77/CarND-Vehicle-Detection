@@ -35,10 +35,10 @@ colorspace = 'HSV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
 orientation = 9
 pixels_per_cell = 8
 cells_per_block = 2
-windows_overlap = 0.75
-window_sizes_positions = [[64, 400, 464], [96, 400, 592], [128, 400, 656], [192, 378, 666], [256, 410, 666]]  # Format: size, y_start, y_stop
 
 # Config - new (or can be different) from build_classifier
+windows_overlap = 0.75
+window_sizes_positions = [[64, 400, 464], [96, 400, 592], [128, 400, 656], [192, 378, 666], [256, 410, 666]]  # Format: size, y_start, y_stop
 cooling_rate = 1
 max_heat = 20
 heat_threshold = 5

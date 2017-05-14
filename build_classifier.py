@@ -54,19 +54,19 @@ print('Feature vector length:', len(X_train[0]))
 # Use a linear SVC
 svc = LinearSVC()
 # Check the training time for the SVC
-t=time.time()
+t = time.time()
 svc.fit(X_train, y_train)
 t2 = time.time()
 print(round(t2-t, 2), 'Seconds to train SVC...')
 # Check the score of the SVC
 print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 # Check the prediction time for a single sample
-t=time.time()
+t = time.time()
 n_predict = 10
 print('My SVC predicts: ', svc.predict(X_test[0:n_predict]))
 print('For these', n_predict, 'labels: ', y_test[0:n_predict])
 t2 = time.time()
-print(round(t2-t, 5), 'Seconds to predict', n_predict,'labels with SVC')
+print(round(t2-t, 5), 'Seconds to predict', n_predict, 'labels with SVC')
 
 # Save model - comment out if not desired
 # joblib.dump(svc, 'svc.pkl')
@@ -81,13 +81,13 @@ for window_config in window_sizes_positions:
     window_defs.extend(slide_window(test_image, y_start_stop=[window_config[1], window_config[2]], xy_window=(window_config[0], window_config[0]), xy_overlap=(windows_overlap, windows_overlap)))
 
 # Run on the test image
-t=time.time()
+t = time.time()
 car_windows = search_windows(test_image, window_defs, svc, X_scaler, color_space=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orientation, pix_per_cell=pixels_per_cell, cell_per_block=cells_per_block)
 t2 = time.time()
 print(round(t2-t, 5), 'Seconds to search for cars in', len(window_defs), 'windows, finding', len(car_windows), 'windows thought to contain cars')
 
 # Heat mapping
-heat = np.zeros_like(test_image[:,:,0]).astype(np.float)
+heat = np.zeros_like(test_image[:, :, 0]).astype(np.float)
 heat = add_heat(heat, car_windows)
 heat = apply_threshold(heat, heat_threshold)
 # Visualize the heatmap when displaying
