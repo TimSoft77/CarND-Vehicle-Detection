@@ -63,8 +63,7 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
     return window_list
 
 
-windows = slide_window(image, x_start_stop=[None, None], y_start_stop=[378, 666],
-                       xy_window=(192, 192), xy_overlap=(0.75, 0.75)) # TODO Vary window size from 64x64 to 256x256 with 75% overlap (64, 96, 128, 192, 256)
+windows = slide_window(image, x_start_stop=[None, None], y_start_stop=[378, 666], xy_window=(192, 192), xy_overlap=(0.75, 0.75))
 
 window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=6)
 plt.imshow(window_img)
