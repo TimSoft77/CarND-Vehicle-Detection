@@ -10,6 +10,7 @@ from skimage.feature import hog
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from scipy.ndimage.measurements import label
+from sklearn.externals import joblib
 
 
 # Define a function to compute binned color features
@@ -23,9 +24,9 @@ def bin_spatial(img, size=(32, 32)):
 # Define a function to compute color histogram features
 def color_hist(img, nbins=32, bins_range=(0, 256)):
     # Compute the histogram of the color channels separately
-    channel1_hist = np.histogram(img[:,:,0], bins=nbins, range=bins_range)
-    channel2_hist = np.histogram(img[:,:,1], bins=nbins, range=bins_range)
-    channel3_hist = np.histogram(img[:,:,2], bins=nbins, range=bins_range)
+    channel1_hist = np.histogram(img[:, :, 0], bins=nbins, range=bins_range)
+    channel2_hist = np.histogram(img[:, :, 1], bins=nbins, range=bins_range)
+    channel3_hist = np.histogram(img[:, :, 2], bins=nbins, range=bins_range)
     # Concatenate the histograms into a single feature vector
     hist_features = np.concatenate((channel1_hist[0], channel2_hist[0], channel3_hist[0]))
     # Return the individual histograms, bin_centers and feature vector
@@ -33,10 +34,9 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
 
 
 # Define a function to return HOG features and visualization
-def get_hog_features(img, orient, pix_per_cell, cell_per_block,
-                        vis=False, feature_vec=True):
+def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
     # Call with two outputs if vis==True
-    if vis == True:
+    if vis:
         features, hog_image = hog(img, orientations=orient, pixels_per_cell=(pix_per_cell, pix_per_cell),
                                   cells_per_block=(cell_per_block, cell_per_block), transform_sqrt=True,
                                   visualise=vis, feature_vector=feature_vec)
@@ -139,13 +139,13 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
 def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
                  xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
     # If x and/or y start/stop positions not defined, set to image size
-    if x_start_stop[0] == None:
+    if x_start_stop[0] is None:
         x_start_stop[0] = 0
-    if x_start_stop[1] == None:
+    if x_start_stop[1] is None:
         x_start_stop[1] = img.shape[1]
-    if y_start_stop[0] == None:
+    if y_start_stop[0] is None:
         y_start_stop[0] = 0
-    if y_start_stop[1] == None:
+    if y_start_stop[1] is None:
         y_start_stop[1] = img.shape[0]
     # Compute the span of the region to be searched
     xspan = x_start_stop[1] - x_start_stop[0]
@@ -180,22 +180,22 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
 # Define a function you will pass an image
 # and the list of windows to be searched (output of slide_windows())
 def search_windows(img, windows, clf, scaler, color_space='RGB', spatial_size=(32, 32), hist_bins=32, hist_range=(0, 256), orient=9, pix_per_cell=8, cell_per_block=2):
-    #1) Create an empty list to receive positive detection windows
+    # 1) Create an empty list to receive positive detection windows
     on_windows = []
-    #2) Iterate over all windows in the list
+    # 2) Iterate over all windows in the list
     for window in windows:
-        #3) Extract the test window from original image
+        # 3) Extract the test window from original image
         test_img = cv2.resize(img[window[0][1]:window[1][1], window[0][0]:window[1][0]], dsize=(64, 64))
-        #4) Extract features for that window using single_img_features()
+        # 4) Extract features for that window using single_img_features()
         features = single_img_features(test_img, cspace=color_space, spatial_size=spatial_size, hist_bins=hist_bins, hist_range=hist_range, orient=orient, pix_per_cell=pix_per_cell, cell_per_block=cell_per_block)
-        #5) Scale extracted features to be fed to classifier
+        # 5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))
-        #6) Predict using your classifier
+        # 6) Predict using your classifier
         prediction = clf.predict(test_features)
-        #7) If positive (prediction == 1) then save the window
+        # 7) If positive (prediction == 1) then save the window
         if prediction == 1:
             on_windows.append(window)
-    #8) Return windows for positive detections
+    # 8) Return windows for positive detections
     return on_windows
 
 
@@ -233,19 +233,15 @@ def draw_labeled_bboxes(img, labels):
     return img
 
 
-
-
-
-
 # Feature extraction parameters
 spatial = 16
 histbin = 32
-colorspace = 'HSV' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-orient = 9
-pix_per_cell = 8
-cell_per_block = 2
+colorspace = 'HSV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+orientation = 9
+pixels_per_cell = 8
+cells_per_block = 2
 windows_overlap = 0.75
-window_sizes_positions = [[64, 400, 464], [96, 400, 592], [128, 400, 656], [192, 378, 666], [256, 410, 666]] # Format: size, y_start, y_stop
+window_sizes_positions = [[64, 400, 464], [96, 400, 592], [128, 400, 656], [192, 378, 666], [256, 410, 666]]  # Format: size, y_start, y_stop
 heat_threshold = 1
 
 # Read in car and non-car images
@@ -253,16 +249,16 @@ cars = glob.glob('./vehicles/*/*.png')
 notcars = glob.glob('./non-vehicles/*/*.png')
 
 # Extract features
-t=time.time()
-car_features = extract_features(cars, cspace=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orient, pix_per_cell=pix_per_cell, cell_per_block=cell_per_block)
-notcar_features = extract_features(notcars, cspace=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orient, pix_per_cell=pix_per_cell, cell_per_block=cell_per_block)
+t = time.time()
+car_features = extract_features(cars, cspace=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orientation, pix_per_cell=pixels_per_cell, cell_per_block=cells_per_block)
+notcar_features = extract_features(notcars, cspace=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orientation, pix_per_cell=pixels_per_cell, cell_per_block=cells_per_block)
 t2 = time.time()
 print(round(t2-t, 2), 'Seconds to extract features...')
 
 # Create an array stack of feature vectors
 X = np.vstack((car_features, notcar_features)).astype(np.float64)
 # Fit a per-column scaler
-X_scaler = StandardScaler().fit(X) # X_scaler type= <class 'sklearn.preprocessing.data.StandardScaler'>
+X_scaler = StandardScaler().fit(X)  # X_scaler type= <class 'sklearn.preprocessing.data.StandardScaler'>
 # Apply the scaler to X
 scaled_X = X_scaler.transform(X)
 
@@ -291,18 +287,22 @@ print('For these', n_predict, 'labels: ', y_test[0:n_predict])
 t2 = time.time()
 print(round(t2-t, 5), 'Seconds to predict', n_predict,'labels with SVC')
 
+# Save model - comment out if not desired
+# joblib.dump(svc, 'svc.pkl')
+# joblib.dump(X_scaler, 'scaler.pkl')
+
 # Get the needed window sizes
-windows = []
+window_defs = []
 test_image = mpimg.imread('./test_images/test1.jpg')
 
-for size in window_sizes_positions:
-    windows.extend(slide_window(test_image, y_start_stop=[size[1], size[2]], xy_window=(size[0], size[0]), xy_overlap=(windows_overlap, windows_overlap)))
+for window_config in window_sizes_positions:
+    window_defs.extend(slide_window(test_image, y_start_stop=[window_config[1], window_config[2]], xy_window=(window_config[0], window_config[0]), xy_overlap=(windows_overlap, windows_overlap)))
 
 # Run on the test image
 t=time.time()
-car_windows = search_windows(test_image, windows, svc, X_scaler, color_space=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orient, pix_per_cell=pix_per_cell, cell_per_block=cell_per_block)
+car_windows = search_windows(test_image, window_defs, svc, X_scaler, color_space=colorspace, spatial_size=(spatial, spatial), hist_bins=histbin, hist_range=(0, 256), orient=orientation, pix_per_cell=pixels_per_cell, cell_per_block=cells_per_block)
 t2 = time.time()
-print(round(t2-t, 5), 'Seconds to search for cars in ', len(windows), ' windows, finding ', len(car_windows), ' windows thought to contain cars')
+print(round(t2-t, 5), 'Seconds to search for cars in', len(window_defs), 'windows, finding', len(car_windows), 'windows thought to contain cars')
 
 # Heat mapping
 heat = np.zeros_like(test_image[:,:,0]).astype(np.float)
